@@ -1,4 +1,4 @@
-# DayDraft
+# 📝 DayDraft
 
 A **Daily Planner** app built with Flutter. Plan your day with prioritised tasks — all stored locally on your device.
 

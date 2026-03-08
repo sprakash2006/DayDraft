@@ -33,9 +33,7 @@ class TaskTile extends ConsumerWidget {
 
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
-    final taskDate = task.date != null
-        ? DateTime(task.date!.year, task.date!.month, task.date!.day)
-        : todayDate;
+    final taskDate = DateTime(task.date.year, task.date.month, task.date.day);
     final canToggle = !taskDate.isBefore(todayDate);
 
     final accent = _priorityAccent();
@@ -92,102 +90,97 @@ class TaskTile extends ConsumerWidget {
                 }
               : null,
           child: Tooltip(
-            message: canToggle ? '' : 'Cannot change tasks from past days',
-            child: Opacity(
-              opacity: canToggle ? 1.0 : 0.85,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(width: 12),
-
-                  // Circular checkbox (visual only)
-                  Opacity(
-                    opacity: canToggle ? 1.0 : 0.4,
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: accent, width: 2),
-                        color: task.isDone ? accent : Colors.transparent,
-                      ),
-                      child: task.isDone
-                          ? const Icon(Icons.check,
-                              size: 14, color: Colors.white)
-                          : null,
+            message: canToggle
+                ? ''
+                : 'Tap the checkbox area to toggle (disabled for past days)',
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 12),
+                // Circular checkbox (visual only)
+                Opacity(
+                  opacity: canToggle ? 1.0 : 0.4,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: accent, width: 2),
+                      color: task.isDone ? accent : Colors.transparent,
+                    ),
+                    child: task.isDone
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Title + meta
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(task.title, style: titleStyle),
+                        if (task.timeMins >= 0 || task.reminderEnabled) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              if (task.timeMins >= 0) ...[
+                                Icon(Icons.access_time,
+                                    size: 12, color: subColor),
+                                const SizedBox(width: 3),
+                                Text(
+                                  _formatTime(),
+                                  style:
+                                      TextStyle(fontSize: 12, color: subColor),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              if (task.reminderEnabled)
+                                Icon(Icons.notifications_active,
+                                    size: 12, color: accent),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 10),
-
-                  // Title + meta
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(task.title, style: titleStyle),
-                          if (task.timeMins >= 0 || task.reminderEnabled) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                if (task.timeMins >= 0) ...[
-                                  Icon(Icons.access_time,
-                                      size: 12, color: subColor),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    _formatTime(),
-                                    style: TextStyle(
-                                        fontSize: 12, color: subColor),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                if (task.reminderEnabled)
-                                  Icon(Icons.notifications_active,
-                                      size: 12, color: accent),
-                              ],
-                            ),
-                          ],
+                ),
+                // Delete button
+                IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      size: 18, color: Color(0xFFE53935)),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        insetPadding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(ctx).size.width * 0.15,
+                            vertical: 24),
+                        title: const Text('Delete task?'),
+                        content: Text(
+                            'Are you sure you want to delete "${task.title}"?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFFE53935)),
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text('Delete'),
+                          ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  // Delete button
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        size: 18, color: Color(0xFFE53935)),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          insetPadding: EdgeInsets.symmetric(
-                              horizontal: MediaQuery.of(ctx).size.width * 0.15,
-                              vertical: 24),
-                          title: const Text('Delete task?'),
-                          content: Text(
-                              'Are you sure you want to delete "${task.title}"?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFFE53935)),
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) notifier.deleteTask(task.id!);
-                    },
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
-              ),
+                    );
+                    if (confirm == true) notifier.deleteTask(task.id!);
+                  },
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
           ),
         ),

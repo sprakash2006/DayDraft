@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:notetracker/features/planner/providers/tasks_provider.dart';
 import 'package:notetracker/features/planner/screens/task_editor_screen.dart';
+import 'package:notetracker/features/planner/screens/timeless_todo_screen.dart';
 import 'package:notetracker/features/planner/widgets/task_tile.dart';
 import 'package:notetracker/shared/widgets/empty_state.dart';
 
@@ -62,7 +63,31 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final isPastDate = selectedDate.isBefore(today);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Draft Your Day !')),
+      appBar: AppBar(
+        title: GestureDetector(
+          onDoubleTap: () {
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => const TimelessTodoScreen(),
+                transitionDuration: const Duration(milliseconds: 350),
+                reverseTransitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder: (_, animation, __, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                        CurvedAnimation(parent: animation, curve: Curves.easeOutExpo),
+                      ),
+                      child: child,
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          child: const Text('Draft Your Day !'),
+        ),
+      ),
       body: Column(
         children: [
           // Calendar

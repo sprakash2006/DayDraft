@@ -16,6 +16,9 @@ dependencies:
   # State management
   flutter_riverpod: ^2.6.1
 
+  # Home screen widgets
+  home_widget: ^0.7.0
+
   # Local database
   sqflite: ^2.4.2
   path: ^1.9.1
@@ -48,7 +51,7 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/icon/app_icon.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#ffffff"
+  adaptive_icon_background: "#0A0E1A"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the

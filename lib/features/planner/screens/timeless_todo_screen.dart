@@ -14,6 +14,9 @@ class TimelessTodoScreen extends ConsumerStatefulWidget {
 }
 
 class _TimelessTodoScreenState extends ConsumerState<TimelessTodoScreen> {
+  int _titleTapCount = 0;
+  DateTime? _lastTitleTap;
+
   @override
   Widget build(BuildContext context) {
     final todosAsync = ref.watch(timelessTodosProvider);
@@ -23,7 +26,20 @@ class _TimelessTodoScreenState extends ConsumerState<TimelessTodoScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: () {
+            final now = DateTime.now();
+            if (_lastTitleTap != null &&
+                now.difference(_lastTitleTap!) > const Duration(milliseconds: 500)) {
+              _titleTapCount = 0;
+            }
+            _titleTapCount++;
+            _lastTitleTap = now;
+
+            if (_titleTapCount >= 8) {
+              _titleTapCount = 0;
+              Navigator.of(context).pop();
+            }
+          },
           child: const Text('Do It Asap!'),
         ),
       ),
@@ -44,7 +60,8 @@ class _TimelessTodoScreenState extends ConsumerState<TimelessTodoScreen> {
               return b.createdAt.compareTo(a.createdAt);
             });
           return MasonryGridView.count(
-            padding: const EdgeInsets.only(top: 16, bottom: 88, left: 12, right: 12),
+            padding:
+                const EdgeInsets.only(top: 16, bottom: 88, left: 12, right: 12),
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
@@ -183,14 +200,16 @@ class _TimelessTodoTile extends ConsumerWidget {
               title: const Text('Edit'),
               onTap: () {
                 Navigator.of(ctx).pop();
-                final state = context
-                    .findAncestorStateOfType<_TimelessTodoScreenState>();
+                final state =
+                    context.findAncestorStateOfType<_TimelessTodoScreenState>();
                 state?._showAddEditDialog(context, existing: todo);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: Color(0xFFE53935)),
-              title: const Text('Delete', style: TextStyle(color: Color(0xFFE53935))),
+              leading:
+                  const Icon(Icons.delete_outline, color: Color(0xFFE53935)),
+              title: const Text('Delete',
+                  style: TextStyle(color: Color(0xFFE53935))),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _confirmDelete(context, notifier);

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:notetracker/features/planner/models/task.dart';
 import 'package:notetracker/shared/services/db_service.dart';
 import 'package:notetracker/shared/services/notification_service.dart';
+import 'package:notetracker/core/services/home_widget_service.dart';
 
 /// Currently selected date in the planner calendar.
 final selectedDateProvider = StateProvider<DateTime>((ref) {
@@ -44,6 +45,8 @@ class TasksNotifier extends AsyncNotifier<List<Task>> {
       if (isNew) return [...tasks, task];
       return tasks.map((t) => t.id == task.id ? task : t).toList();
     });
+
+    await HomeWidgetService.updateWidget();
   }
 
   Future<void> deleteTask(int id) async {
@@ -51,6 +54,7 @@ class TasksNotifier extends AsyncNotifier<List<Task>> {
     state = state.whenData((tasks) => tasks.where((t) => t.id != id).toList());
     await DbService.instance.deleteTask(id);
     await NotificationService.instance.cancelReminder(id);
+    await HomeWidgetService.updateWidget();
   }
 
   Future<void> toggleDone(Task task) async {
@@ -59,5 +63,6 @@ class TasksNotifier extends AsyncNotifier<List<Task>> {
     state = state.whenData(
         (tasks) => tasks.map((t) => t.id == task.id ? task : t).toList());
     await DbService.instance.saveTask(task);
+    await HomeWidgetService.updateWidget();
   }
 }

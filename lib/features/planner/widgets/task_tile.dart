@@ -150,34 +150,40 @@ class TaskTile extends ConsumerWidget {
                 ),
                 // Delete button
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 18, color: Color(0xFFE53935)),
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        insetPadding: EdgeInsets.symmetric(
-                            horizontal: MediaQuery.of(ctx).size.width * 0.15,
-                            vertical: 24),
-                        title: const Text('Delete task?'),
-                        content: Text(
-                            'Are you sure you want to delete "${task.title}"?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFFE53935)),
-                            onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) notifier.deleteTask(task.id!);
-                  },
+                  icon: Icon(Icons.delete_outline,
+                      size: 18,
+                      color: canToggle
+                          ? const Color(0xFFE53935)
+                          : const Color(0xFF9E9E9E)),
+                  onPressed: canToggle
+                      ? () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              insetPadding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      MediaQuery.of(ctx).size.width * 0.15,
+                                  vertical: 24),
+                              title: const Text('Delete task?'),
+                              content: Text(
+                                  'Are you sure you want to delete "${task.title}"?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFFE53935)),
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) notifier.deleteTask(task.id!);
+                        }
+                      : null,
                   visualDensity: VisualDensity.compact,
                 ),
               ],

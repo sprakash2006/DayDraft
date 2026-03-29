@@ -34,6 +34,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   late final PageController _pageController;
   bool _pageChanging = false;
 
+  int _titleTapCount = 0;
+  DateTime? _lastTitleTap;
+
   @override
   void initState() {
     super.initState();
@@ -65,25 +68,37 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
-          onDoubleTap: () {
-            Navigator.of(context).push(
-              PageRouteBuilder(
-                pageBuilder: (_, __, ___) => const TimelessTodoScreen(),
-                transitionDuration: const Duration(milliseconds: 350),
-                reverseTransitionDuration: const Duration(milliseconds: 300),
-                transitionsBuilder: (_, animation, __, child) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(
-                      scale: Tween<double>(begin: 0.92, end: 1.0).animate(
-                        CurvedAnimation(parent: animation, curve: Curves.easeOutExpo),
+          onTap: () {
+            final now = DateTime.now();
+            if (_lastTitleTap != null &&
+                now.difference(_lastTitleTap!) > const Duration(milliseconds: 500)) {
+              _titleTapCount = 0;
+            }
+            _titleTapCount++;
+            _lastTitleTap = now;
+
+            if (_titleTapCount >= 8) {
+              _titleTapCount = 0;
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => const TimelessTodoScreen(),
+                  transitionDuration: const Duration(milliseconds: 350),
+                  reverseTransitionDuration: const Duration(milliseconds: 300),
+                  transitionsBuilder: (_, animation, __, child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                          CurvedAnimation(
+                              parent: animation, curve: Curves.easeOutExpo),
+                        ),
+                        child: child,
                       ),
-                      child: child,
-                    ),
-                  );
-                },
-              ),
-            );
+                    );
+                  },
+                ),
+              );
+            }
           },
           child: const Text('Draft Your Day !'),
         ),

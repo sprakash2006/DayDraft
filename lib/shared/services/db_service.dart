@@ -1,7 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:notetracker/features/notes/models/note.dart';
-import 'package:notetracker/features/planner/models/task.dart';
 import 'package:notetracker/features/planner/models/timeless_todo.dart';
 
 class DbService {
@@ -14,7 +13,7 @@ class DbService {
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
       join(dbPath, 'notetracker.db'),
-      version: 2,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE notes (
@@ -27,23 +26,19 @@ class DbService {
           )
         ''');
         await db.execute('''
-          CREATE TABLE tasks (
+          CREATE TABLE timeless_todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            date TEXT NOT NULL,
-            timeMins INTEGER NOT NULL DEFAULT -1,
-            priority TEXT NOT NULL DEFAULT 'medium',
+            category TEXT NOT NULL DEFAULT 'General',
+            dueAt TEXT,
             isDone INTEGER NOT NULL DEFAULT 0,
-            reminderEnabled INTEGER NOT NULL DEFAULT 0,
             createdAt TEXT NOT NULL
           )
         ''');
         await db.execute('''
-          CREATE TABLE timeless_todos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            isDone INTEGER NOT NULL DEFAULT 0,
-            createdAt TEXT NOT NULL
+          CREATE TABLE timeless_category_order (
+            name TEXT PRIMARY KEY,
+            position INTEGER NOT NULL
           )
         ''');
       },
@@ -58,6 +53,18 @@ class DbService {
             )
           ''');
         }
+        if (oldVersion < 3) {
+          await _addCategoryColumnIfMissing(db);
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS timeless_category_order (
+              name TEXT PRIMARY KEY,
+              position INTEGER NOT NULL
+            )
+          ''');
+        }
+        if (oldVersion < 4) {
+          await _addDueAtColumnIfMissing(db);
+        }
       },
       onOpen: (db) async {
         // Ensure timeless_todos table exists (for migrating from v1)
@@ -65,12 +72,43 @@ class DbService {
           CREATE TABLE IF NOT EXISTS timeless_todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT 'General',
             isDone INTEGER NOT NULL DEFAULT 0,
             createdAt TEXT NOT NULL
           )
         ''');
+        await _addCategoryColumnIfMissing(db);
+        await _addDueAtColumnIfMissing(db);
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS timeless_category_order (
+            name TEXT PRIMARY KEY,
+            position INTEGER NOT NULL
+          )
+        ''');
       },
     );
+  }
+
+  /// Adds the `category` column to timeless_todos when upgrading from a schema
+  /// that predates it. Safe to call repeatedly.
+  Future<void> _addCategoryColumnIfMissing(Database db) async {
+    final cols = await db.rawQuery('PRAGMA table_info(timeless_todos)');
+    final hasCategory = cols.any((c) => c['name'] == 'category');
+    if (!hasCategory) {
+      await db.execute(
+        "ALTER TABLE timeless_todos ADD COLUMN category TEXT NOT NULL DEFAULT 'General'",
+      );
+    }
+  }
+
+  /// Adds the nullable `dueAt` column to timeless_todos when upgrading from a
+  /// schema that predates it. Safe to call repeatedly.
+  Future<void> _addDueAtColumnIfMissing(Database db) async {
+    final cols = await db.rawQuery('PRAGMA table_info(timeless_todos)');
+    final hasDueAt = cols.any((c) => c['name'] == 'dueAt');
+    if (!hasDueAt) {
+      await db.execute('ALTER TABLE timeless_todos ADD COLUMN dueAt TEXT');
+    }
   }
 
   // ─── Notes ────────────────────────────────────────────────────────────────
@@ -98,44 +136,6 @@ class DbService {
     await _db.delete('notes', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ─── Tasks ────────────────────────────────────────────────────────────────
-
-  Future<List<Task>> getAllTasks() async {
-    final rows = await _db.query('tasks');
-    return rows.map(Task.fromMap).toList();
-  }
-
-  Future<List<Task>> getTasksForDate(DateTime date) async {
-    final start = DateTime(date.year, date.month, date.day).toIso8601String();
-    final end =
-        DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
-    final rows = await _db.query(
-      'tasks',
-      where: 'date >= ? AND date <= ?',
-      whereArgs: [start, end],
-      orderBy: 'timeMins ASC',
-    );
-    return rows.map(Task.fromMap).toList();
-  }
-
-  Future<Task> saveTask(Task task) async {
-    if (task.id == null) {
-      task.id = await _db.insert('tasks', task.toMap());
-    } else {
-      await _db.update(
-        'tasks',
-        task.toMap(),
-        where: 'id = ?',
-        whereArgs: [task.id],
-      );
-    }
-    return task;
-  }
-
-  Future<void> deleteTask(int id) async {
-    await _db.delete('tasks', where: 'id = ?', whereArgs: [id]);
-  }
-
   // ─── Timeless Todos ───────────────────────────────────────────────────────
 
   Future<void> _ensureTimelessTodosTable() async {
@@ -143,8 +143,17 @@ class DbService {
       CREATE TABLE IF NOT EXISTS timeless_todos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'General',
         isDone INTEGER NOT NULL DEFAULT 0,
         createdAt TEXT NOT NULL
+      )
+    ''');
+    await _addCategoryColumnIfMissing(_db);
+    await _addDueAtColumnIfMissing(_db);
+    await _db.execute('''
+      CREATE TABLE IF NOT EXISTS timeless_category_order (
+        name TEXT PRIMARY KEY,
+        position INTEGER NOT NULL
       )
     ''');
   }
@@ -173,5 +182,30 @@ class DbService {
   Future<void> deleteTimelessTodo(int id) async {
     await _ensureTimelessTodosTable();
     await _db.delete('timeless_todos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Returns the saved category display order (may include categories that no
+  /// longer have any todos).
+  Future<List<String>> getCategoryOrder() async {
+    await _ensureTimelessTodosTable();
+    final rows = await _db.query(
+      'timeless_category_order',
+      orderBy: 'position ASC',
+    );
+    return rows.map((r) => r['name'] as String).toList();
+  }
+
+  /// Persists the given category order, replacing any previously saved order.
+  Future<void> setCategoryOrder(List<String> categories) async {
+    await _ensureTimelessTodosTable();
+    final batch = _db.batch();
+    batch.delete('timeless_category_order');
+    for (var i = 0; i < categories.length; i++) {
+      batch.insert('timeless_category_order', {
+        'name': categories[i],
+        'position': i,
+      });
+    }
+    await batch.commit(noResult: true);
   }
 }

@@ -1,9 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:notetracker/features/planner/models/task.dart';
+import 'package:notetracker/features/planner/models/timeless_todo.dart';
 
 class TodayTaskWidget extends StatelessWidget {
-  final List<Task> tasks;
+  final List<TimelessTodo> tasks;
 
   const TodayTaskWidget({super.key, required this.tasks});
 
@@ -21,7 +20,7 @@ class TodayTaskWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             color: const Color(0xFF0A0E1A),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 2,
             ),
           ),
@@ -40,11 +39,11 @@ class TodayTaskWidget extends StatelessWidget {
                       letterSpacing: 0.5,
                     ),
                   ),
-                  // Debug indicator for task count
+                  // Task count
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -111,7 +110,7 @@ class TodayTaskWidget extends StatelessWidget {
                 child: Text(
                   "Updated: ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}",
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     fontSize: 10,
                   ),
                 ),
